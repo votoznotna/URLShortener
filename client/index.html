@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="minimum-scale=1.0, width=device-width, maximum-scale=1.0, user-scalable=no"/>
+    <meta charset="utf-8">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.13.1/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.13.1/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+
+     <style>
+      body {
+          padding: 5px;
+          background-color: lightblue;
+          box-sizing: border-box;
+      }
+      .item {
+        margin: 5px 0;
+        background: darkblue;
+        padding: 0;
+      }
+      .cursor-pointer {
+        cursor: pointer;
+      }
+      .item a, .item a:hover {
+        color: white;
+      }
+      input[type='text'] {
+        min-width: 20rem;
+        margin: 5px;
+      }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+  <script type="text/babel">
+     
+    const dataFetchReducer = (state, action) => {
+      switch (action.type) {
+        case 'REQUEST_INIT':
+          return {
+            ...state,
+            isProcessing: true,
+            isUrlInvalid: false,
+            isServerError: false
+          };
+        case 'SUBMIT_SUCCESS':
+          return {
+            ...state,
+            isProcessing: false,
+            isUrlInvalid: false,
+            isServerError: false,
+            urls: [...state.urls, action.payload],
+          };
+        case 'FETCH_SUCCESS':
+          return {
+            ...state,
+            isProcessing: false,
+            isUrlInvalid: false,
+            isServerError: false,
+            urls:  Object.keys(action.payload).map(key => ({[key]: action.payload[key]}) ),
+          };
+        case 'REQUEST_FAILURE':
+          return {
+            ...state,
+            isProcessing: false,
+            isUrlInvalid: false,
+            isServerError: true,
+          };
+        case 'INVALID_URL':
+          return {
+            ...state,
+            isProcessing: false,
+            isUrlInvalid: true,
+          };
+
+        default:
+          throw new Error();
+      }
+    };
+
+    const useDataApi = (initialData) => {
+      const [url, setUrl] = React.useState('');
+
+      const [state, dispatch] = React.useReducer(dataFetchReducer, {
+        isProcessing: false,
+        isServerError: false,
+        isUrlInvalid: false,
+        urls: initialData,
+      });
+
+      /* Fetch URL list */
+      /*
+      React.useEffect(() => {    
+        let didCancel = false;   
+
+        const fetchData = async () => {
+          dispatch({ type: 'REQUEST_INIT' });
+          try {
+            const result = await axios({
+                method: 'get',
+                url: 'http://localhost:9900/api/v1/urls'
+              }
+            );
+            if (!didCancel) {
+              dispatch({ type: 'FETCH_SUCCESS', payload: result.data});
+            }
+          } catch (error) {
+            if (!didCancel) {
+              dispatch({ type: 'REQUEST_FAILURE' });
+            }
+          }
+        };
+
+        fetchData();
+
+        return () => {
+          didCancel = true;
+        };
+      }, []);
+      */
+      
+
+      /* Submit a new URL */
+      React.useEffect(() => {
+        let didCancel = false;
+
+        const urlValidationRegex = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/;
+
+        if (url && !urlValidationRegex.test(url)) {
+          dispatch({ type: 'INVALID_URL' }); 
+        } 
+        
+        if (url && urlValidationRegex.test(url)) {
+          const fetchData = async () => {
+            dispatch({ type: 'REQUEST_INIT' });
+            try {
+              const result = await axios(
+                {
+                  method: 'post',
+                  url: 'http://localhost:9900/api/v1/urls',
+                  data: {
+                    url
+                  }
+                }
+              );
+              if (!didCancel) {
+                dispatch({ type: 'SUBMIT_SUCCESS', payload: result.data });
+                setUrl('');
+              }
+            } catch (error) {
+              if (!didCancel) {
+                dispatch({ type: 'REQUEST_FAILURE' });
+              }
+            }
+          };
+
+          fetchData();
+        }
+
+        return () => {
+          didCancel = true;
+        };
+      }, [url]);
+
+      return [state, setUrl];
+    };
+
+    /******************** COMPONENTS ************************/
+    const UrlInput = (props) => {
+        const textInput = React.createRef();
+        const handleOnSubmit = React.useCallback((e) => {props.onSubmit(e, textInput.current.value); textInput.current.value = '';} );
+        return (<form className="form-inline justify-content-center m-4" onSubmit={handleOnSubmit}>
+            <input 
+              className="form-control" 
+              type="text" 
+              ref={textInput}
+              placeholder="Type URL here..."
+            />
+            <button 
+              className="btn btn-primary cursor-pointer mx-2" 
+            >
+            Submit
+            </button>
+        </form>)
+    } 
+
+    const UrlList = (props) => {
+        const { data } = props;
+        return (
+          <React.Fragment>
+            <ul className="list-group">
+            { data && data.map(item => 
+                  (<li className="item card card-body" key={Object.keys(item)[0]}>
+                      <UrlItem url={item[Object.keys(item)[0]]} />
+                  </li>)
+              )
+            }
+            </ul>
+          </React.Fragment>
+        )
+    }
+
+
+
+    const UrlItem = React.memo((props) => {
+        const { url } = props;
+
+        return (
+            <React.Fragment>
+                <a className="btn btn-link" href={url} target="_blank">{url}</a>
+            </React.Fragment>
+        )
+    })
+
+    const App = () => {
+      const [{ urls, isProcessing, isUrlInvalid, isServerError }, doFetch] = useDataApi([]);
+
+      /* Submit a new entered Url */
+      const onSubmit = (event, value, ref) => {
+        event.preventDefault();
+        doFetch(value);
+      }
+
+      return (
+        <React.Fragment> 
+          <div className="container">
+            <div className="offset-md-3 col-md-6">
+              <UrlInput onSubmit={onSubmit} />
+              {isUrlInvalid && <div className='alert alert-danger'>URL is invalid</div>}
+              {isServerError && <div className='alert alert-danger'>Server error</div>}
+              {isProcessing && <div className='alert alert-info'>Processing ...</div> }
+              <UrlList data={urls} />
+            </div>
+          </div>
+        </React.Fragment>
+      );
+    }
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+</body>
+</html>
