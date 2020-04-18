@@ -14,11 +14,13 @@
 ```
 git clone git@github.com:votoznotna/URLShortener.git
 ```
-npm start
+```
+go URLShortener directory
+```
+* From the same folder run
 ```
 npm install
 ```
-* From the same folder run
 ```
 npm start
 ``` 
