@@ -59,7 +59,7 @@
             isProcessing: false,
             isUrlInvalid: false,
             isServerError: false,
-            urls:  Object.keys(action.payload).map(key => ({[key]: action.payload[key]}) ),
+            urls: action.payload,
           };
         case 'REQUEST_FAILURE':
           return {
@@ -91,7 +91,7 @@
       });
 
       /* Fetch URL list */
-      /*
+      
       React.useEffect(() => {    
         let didCancel = false;   
 
@@ -104,7 +104,7 @@
               }
             );
             if (!didCancel) {
-              dispatch({ type: 'FETCH_SUCCESS', payload: result.data});
+              dispatch({ type: 'FETCH_SUCCESS', payload: result.data.urls});
             }
           } catch (error) {
             if (!didCancel) {
@@ -119,9 +119,7 @@
           didCancel = true;
         };
       }, []);
-      */
       
-
       /* Submit a new URL */
       React.useEffect(() => {
         let didCancel = false;

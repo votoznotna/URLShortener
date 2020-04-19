@@ -31,7 +31,7 @@ module.exports = function(port) {
     })
     .get(BASE_API_URL, (ctx) => {
         try {
-            ctx.body = SHORTEN_URLS;
+            ctx.body = { urls: SHORTEN_URLS };
             ctx.status = 200;
         } catch (err) {
             console.log(err);
